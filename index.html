@@ -1,0 +1,299 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <style type="text/css">
+        body, html{width: 100%;height: 100%;margin:0;font-family:"微软雅黑";}
+        #allmap{height:500px;width:100%;}
+        #r-result{width:100%;}
+    </style>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=Pfj0GMW60pPDl6fTuTtEOS9t"></script>
+    <script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
+    
+    <title>Location</title>
+</head>
+<body>
+    <div id="allmap"></div>
+    <div id="r-result">
+        
+        <input type="button" id="a_location" value="定位当前位置" />
+        <input type="button" id="show_pre_range" value="显示之前已圈定范围">
+        
+        <br/>
+        <input type="button" onclick="add_limit();" value="划定范围" />
+        
+        <input type="button" id="a_limit" value="重新圈定范围">
+        
+        <input type="button" onclick="remove_overlay();" value="删除遮盖物" />
+        <br/>
+
+        
+        <hr/>
+        位置 X:<input type="text" name="pointx" id="pointx">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        Y:<input type="text" name="pointy" id="pointy">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        半径：<input type="text" name="radius" id="radius"><br/>
+    </div>
+    <div id="temp"></div>
+</body>
+</html>
+<script type="text/javascript">
+    // 百度地图API功能
+    var map = new BMap.Map("allmap");
+    map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放   
+    map.setDefaultCursor("default");     //设置鼠标样式
+    
+    
+    var pointx = 108.953526;//108.828;
+    var pointy = 34.265693;//34.1244;
+    var radius = 0;//70.0198;
+    
+    var isAddLimit = 0;
+    var limit_lat = 34.265693;
+    var limit_lng = 108.953526;
+    var limit_rad = 0;
+        
+    
+    var point = new BMap.Point(pointx,pointy);
+    
+    map.centerAndZoom(point, 12);           //地图默认显示中心点
+    
+    //定位
+    jQuery("#a_location").click(function(){
+        jQuery.post("http://1.jiangyounglocation.sinaapp.com/location.php?case=2",
+      {
+        
+      },
+      function(data,status){
+        
+        if(status == 'success')
+        {
+            // pointx = data.lontitude;
+            // pointy = data.latitude;
+            // radius = data.radius;
+            //alert(data);
+            remove_overlay();
+            add_point(data.lontitude,data.latitude);
+            add_circle(data.lontitude,data.latitude,data.radius);
+            //add_overlay();
+            
+        }
+      },"json");
+    
+    });
+    
+    
+    //更新圈定范围
+    jQuery("#a_limit").click(function(){
+        if(confirm('确定圈定该范围？')){
+            
+           if(isAddLimit == 1){
+        		jQuery.post("http://1.jiangyounglocation.sinaapp.com/location.php?case=3",
+                        {
+                            "latitude": limit_lat,
+                            "lontitude": limit_lng,
+                            "radius": limit_rad,
+                            "remark": ""
+                        },
+                        function(data,status){
+
+                            if(status == 'success'){
+                                alert(data);
+                            }
+                        
+                        });        
+        }else{
+        	alert("请先划定范围！");
+        }
+        
+        }else{
+            alert("取消！");
+        }
+    });
+    
+    //显示之前圈定的范围
+    jQuery("#show_pre_range").click(function(){
+        jQuery.post("http://1.jiangyounglocation.sinaapp.com/location.php?case=4",
+                    {},
+                    function(data,status){
+                        if(data.latitude!=0 && data.lontitude!=0){
+                            // pointx = limit_lng;
+                            // pointy = limit_lat;
+                            // radius = limit_rad;
+                            add_point(data.lontitude,data.latitude);
+                            add_circle(data.lontitude,data.latitude,data.radius);
+                            //add_overlay();
+                        
+                        }
+                    
+                    },"json");
+    
+    });
+    
+    
+    //点击地图自动填写位置坐标
+    map.addEventListener("click",function(c){
+        jQuery("#pointx").val(c.point.lng);
+        jQuery("#pointy").val(c.point.lat);
+        jQuery("#radius").val(500);
+    
+    });
+    
+    //划定范围
+    function add_limit(){
+        
+        remove_overlay();
+        var pointx_temp = document.getElementById("pointx").value;
+        var pointy_temp = document.getElementById("pointy").value;
+        var radius_temp = document.getElementById("radius").value;
+        if(radius_temp != '')limit_rad = radius_temp;
+        if(pointx_temp != '' && pointy_temp != ''){
+            isAddLimit = 1;
+            limit_lat = pointy_temp;
+            limit_lng = pointx_temp;
+            limit_rad = radius_temp;
+            add_point(pointx_temp,pointy_temp);
+            add_circle(pointx_temp,pointy_temp,radius_temp);
+        }else{
+            alert("请完整填写");
+        }
+        //add_overlay();
+    
+    }
+
+
+    jQuery("#draw_polygon").click(function(){
+        alert("draw_polygon");
+    });
+
+ /*  
+    //添加覆盖物
+    function add_overlay(){
+        
+        point = new BMap.Point(pointx,pointy);
+        
+        
+        //point = new BMap.Point(116.392214,39.918985);
+        
+        map.centerAndZoom(point, 17);
+        
+        var marker = new BMap.Marker(point); // 创建点
+        
+        
+        var polyline = new BMap.Polyline([
+            new BMap.Point(116.399, 39.910),
+            new BMap.Point(116.405, 39.920),
+            new BMap.Point(116.425, 39.900)
+        ],{strokeColor:"blue", strokeWeight:2, strokeOpacity:0.5});   //创建折线
+        
+        
+        var circle = new BMap.Circle(point,radius,{strokeColor:"blue", strokeWeight:2, strokeOpacity:0.5}); //创建圆
+        
+        var polygon = new BMap.Polygon([
+            new BMap.Point(116.387112,39.920977),
+            new BMap.Point(116.385243,39.913063),
+            new BMap.Point(116.394226,39.917988),
+            new BMap.Point(116.401772,39.921364),
+            new BMap.Point(116.41248,39.927893)
+        ], {strokeColor:"blue", strokeWeight:2, strokeOpacity:0.5});  //创建多边形
+        
+        var pStart = new BMap.Point(116.392214,39.918985);
+        var pEnd = new BMap.Point(116.41478,39.911901);
+        var rectangle = new BMap.Polygon([
+            new BMap.Point(pStart.lng,pStart.lat),
+            new BMap.Point(pEnd.lng,pStart.lat),
+            new BMap.Point(pEnd.lng,pEnd.lat),
+            new BMap.Point(pStart.lng,pEnd.lat)
+        ], {strokeColor:"blue", strokeWeight:2, strokeOpacity:0.5});  //创建矩形
+        
+        
+        map.addOverlay(marker);            //增加点        
+        //map.addOverlay(polyline);          //增加折线
+        map.addOverlay(circle);            //增加圆
+        //map.addOverlay(polygon);           //增加多边形
+        //map.addOverlay(rectangle);         //增加矩形
+        
+    }
+*/
+
+
+//移动鼠标显示坐标    
+map.addEventListener("mousemove",function(c){
+    
+    if(!temp.mouseLabel){
+    createMouseMoveLabel(c.point)
+    }
+    if(!temp.mouseLabel.isVisible()){
+    temp.mouseLabel.show()
+    }
+    var k=temp.mouseLabel;
+    var h=map.getContainer();
+    var g=h.clientWidth;
+    var f=h.clientHeight;
+    var j=132;var i=19;
+    var n=map.pointToPixel(c.point).x+13;
+    var l=map.pointToPixel(c.point).y+20;
+    var m=map.pixelToPoint(new BMap.Pixel(g-j-13,f-i-20));
+    var b=map.pixelToPoint(new BMap.Pixel(n-j-33,f-i-20));
+    var d=c.point;if(g-n<j){
+        d=new BMap.Point(m.lng,d.lat)
+    }
+    if(f-l<i){
+        d=new BMap.Point(d.lng,m.lat)
+    }
+    if(g-n-16<j&&f-l<i){
+        d=b
+    }
+k.setPosition(d);
+k.setContent(c.point.lng+","+c.point.lat)}
+
+);
+//创建提示框
+var temp = document.getElementById("temp");
+function createMouseMoveLabel(c){
+
+    var a=map.pixelToPoint(new BMap.Pixel(0,0));
+    var b=c.lng+","+c.lat;
+    var d=new BMap.Label(b,{point:a,offset:new BMap.Size(13,20),enableMassClear:false});
+    d.setStyle({background:"#fff",border:"#999 solid 1px",zIndex:10000000});
+    map.addOverlay(d);
+    temp.mouseLabel=d
+}
+
+//添加点
+function add_point(x,y){
+    var r_point = new BMap.Point(x,y);
+    map.centerAndZoom(point, 17);
+    var marker = new BMap.Marker(r_point); // 创建点
+    map.addOverlay(marker);            //增加点
+}
+//添加圆
+function add_circle(x,y,r){
+    var r_point = new BMap.Point(x,y);
+    map.centerAndZoom(r_point, 17);
+    var circle = new BMap.Circle(r_point,r,{strokeColor:"blue", strokeWeight:2, strokeOpacity:0.5}); //创建圆
+    map.addOverlay(circle);            //增加圆
+}
+function add_polygon(s){
+if(s.length % 2 ==0 && s.length>0){
+
+}
+var polygon = new BMap.Polygon([
+        new BMap.Point(116.387112,39.920977),
+        new BMap.Point(116.385243,39.913063),
+        new BMap.Point(116.394226,39.917988),
+        new BMap.Point(116.401772,39.921364),
+        new BMap.Point(116.41248,39.927893)
+    ], {strokeColor:"blue", strokeWeight:2, strokeOpacity:0.5});  //创建多边形
+
+
+}
+    
+    
+    
+//清除覆盖物
+function remove_overlay(){
+    isAddLimit = 0;
+	map.clearOverlays();         
+}
+</script>
