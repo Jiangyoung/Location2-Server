@@ -1,4 +1,5 @@
 # Location2-Server
+<pre>
 Location2-Server
 代码放在sae上
 文件说明：
@@ -14,3 +15,4 @@ Location2-Server
     1、在baidu地图显示android的定位信息
     2、显示权限范围信息
     3、划定权限范围并更新
+</pre>
